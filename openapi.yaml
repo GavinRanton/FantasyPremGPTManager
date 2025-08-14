@@ -3,7 +3,7 @@ info:
   title: FPL Manager API
   version: "1.0.0"
 servers:
-  - url: https://YOUR-DOMAIN
+  - url: https://https://api.karatefathead.uk
 paths:
   /health:
     get:
