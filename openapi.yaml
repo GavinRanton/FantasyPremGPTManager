@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: FPL Manager API
+  version: "1.0.0"
+servers:
+  - url: https://YOUR-DOMAIN
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /deadlines:
+    get:
+      operationId: deadlines
+      summary: Next three GW deadlines
+      responses:
+        "200":
+          description: Next deadlines
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        gw: { type: integer }
+                        deadline_utc: { type: string }
+                        is_current: { type: boolean }
+                        is_next: { type: boolean }
+  /initial-squad:
+    post:
+      operationId: initialSquad
+      summary: Build a 15-man squad and starting XI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                budget_m: { type: number, default: 100.0, minimum: 90, maximum: 120 }
+                horizon_gws: { type: integer, default: 3, minimum: 1, maximum: 6 }
+      responses:
+        "200":
+          description: Squad + captain + bench
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        pos: { type: string, enum: [GKP, DEF, MID, FWD] }
+                        club: { type: string }
+                        price_m: { type: number }
+                        ep_next: { type: number }
+                        starter: { type: boolean }
+                        bench_order: { type: integer, nullable: true }
+                  captain_id: { type: integer }
+                  vice_id: { type: integer }
+                  bank_m: { type: number }
+  /weekly-plan:
+    post:
+      operationId: weeklyPlan
+      summary: Transfers + lineup for next GW
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_squad, bank_m]
+              properties:
+                current_squad:
+                  type: array
+                  items: { type: integer }
+                  description: 15 FPL element IDs
+                bank_m: { type: number, default: 0.0 }
+                free_transfers: { type: integer, default: 1, minimum: 0, maximum: 5 }
+                horizon_gws: { type: integer, default: 2, minimum: 1, maximum: 6 }
+      responses:
+        "200":
+          description: Weekly plan with transfers, XI, bench, captain/vice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transfers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        out_id: { type: integer }
+                        out_name: { type: string }
+                        out_pos: { type: string }
+                        out_price_m: { type: number }
+                        in_id: { type: integer }
+                        in_name: { type: string }
+                        in_pos: { type: string }
+                        in_price_m: { type: number }
+                  lineup:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlayerPick' }
+                  captain_id: { type: integer }
+                  vice_id: { type: integer }
+                  bench:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlayerPick' }
+                  ep_gain_vs_stand_pat: { type: number }
+                  hit_cost: { type: integer }
+                  notes:
+                    type: array
+                    items: { type: string }
+  /what-if:
+    post:
+      operationId: whatIf
+      summary: Simulate alternative constraints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                budget_m: { type: number, default: 100.0 }
+                horizon_gws: { type: integer, default: 2, minimum: 1, maximum: 6 }
+      responses:
+        "200":
+          description: Squad response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlayerPick' }
+                  captain_id: { type: integer }
+                  vice_id: { type: integer }
+                  bank_m: { type: number }
+components:
+  schemas:
+    PlayerPick:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        pos: { type: string }
+        club: { type: string }
+        price_m: { type: number }
+        ep_next: { type: number }
+        starter: { type: boolean }
+        bench_order: { type: integer, nullable: true }
